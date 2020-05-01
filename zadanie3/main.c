@@ -15,7 +15,7 @@ typedef struct vertex{
 
 typedef struct heapInfo{
     int elements;
-    VERTEX *heap[1000];
+    VERTEX *heap[10000];
 }HEAPINFO;
 
 typedef struct mapInfo{
@@ -53,7 +53,6 @@ VERTEX *pop(HEAPINFO *heapinfo){
     }
     int  i = 1, elements = heapinfo->elements;
     vertex = heapinfo->heap[1] = heapinfo->heap[elements];
-
     while(((i *= 2) + 1 <= elements) && (vertex->length > (min = MIN(heapinfo->heap[i], heapinfo->heap[i + 1]))->length)){
         if(min == heapinfo->heap[i]){
             heapinfo->heap[i] = vertex;
@@ -130,9 +129,6 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
     push(start, heapinfo);
     while(1){
         VERTEX *min = pop(heapinfo);
-        if(min == NULL){
-            return NULL;
-        }
         if(min == finish){
             return finish;
         }
@@ -145,8 +141,9 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
             if((mapInfo->vertexMap[x][y + 1]->length > min->length + plus)){
                 mapInfo->vertexMap[x][y + 1]->length = min->length + plus;
                 mapInfo->vertexMap[x][y + 1]->before = min;
+                push(mapInfo->vertexMap[x][y + 1], heapinfo);
             }
-            push(mapInfo->vertexMap[x][y + 1], heapinfo);
+
         }
         if((x + 1 < mapInfo->n) && (mapInfo->vertexMap[x + 1][y] != min->before) && (mapInfo->vertexMap[x + 1][y]->ok == 0)){        //dole
             int plus = 0;
@@ -154,8 +151,9 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
             if((mapInfo->vertexMap[x + 1][y]->length > min->length + plus)){
                 mapInfo->vertexMap[x + 1][y]->length = min->length + plus;
                 mapInfo->vertexMap[x + 1][y]->before = min;
+                push(mapInfo->vertexMap[x + 1][y], heapinfo);
             }
-            push(mapInfo->vertexMap[x + 1][y], heapinfo);
+
         }
         if((y - 1 >= 0) && (mapInfo->vertexMap[x][y - 1] != min->before) && (mapInfo->vertexMap[x][y - 1]->ok == 0)){        //dolava
             int plus = 0;
@@ -163,8 +161,9 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
             if((mapInfo->vertexMap[x][y - 1]->length > min->length + plus)){
                 mapInfo->vertexMap[x][y - 1]->length = min->length + plus;
                 mapInfo->vertexMap[x][y - 1]->before = min;
+                push(mapInfo->vertexMap[x][y - 1], heapinfo);
             }
-            push(mapInfo->vertexMap[x][y - 1], heapinfo);
+
         }
         if((x - 1 >= 0) && (mapInfo->vertexMap[x - 1][y] != min->before) && (mapInfo->vertexMap[x - 1][y]->ok == 0)){        //hore
             int plus = 0;
@@ -172,8 +171,9 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
             if((mapInfo->vertexMap[x - 1][y]->length > min->length + plus)){
                 mapInfo->vertexMap[x - 1][y]->length = min->length + plus;
                 mapInfo->vertexMap[x - 1][y]->before = min;
+                push(mapInfo->vertexMap[x - 1][y], heapinfo);
             }
-            push(mapInfo->vertexMap[x - 1][y], heapinfo);
+
         }
     }
 }
@@ -302,14 +302,8 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
 
     int prize = pathPrize(mapInfo->vertexMap,dragon);
     int length = pathLength(dragon);
-    int *path = (int*)malloc(length * 2 * sizeof(int));
-    path = pathMap(popolvar, dragon, length * 2 - 1, path);
-
-//    printf("length = %3d prize = %3d\n",length,prize);
-//    for (int k = 0; k < length * 2; ++k) {
-//        printf("%d ",path[k]);
-//        if(k % 2 == 1) printf("\n");
-//    }
+    int *dragonPath = (int*)malloc(length * 2 * sizeof(int));
+    dragonPath = pathMap(popolvar, dragon, length * 2 - 1, dragonPath);
 
     MATRIXNODE ***matrix = (MATRIXNODE***) malloc((mapInfo->princess + 1) * sizeof(MATRIXNODE**));      //matica susednosti princezien a draka
     for (int i = 0; i < mapInfo->princess + 1; ++i) {
@@ -341,11 +335,6 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
             matrix[i][j]->prize = characterPrize;
             matrix[i][j]->length = characterLength;
             matrix[i][j]->path = characterPath;
-//            printf("length = %3d prize = %3d\n",characterLength,characterPrize);
-//            for (int k = 0; k < characterLength * 2; ++k) {
-//                printf("%d ",characterPath[k]);
-//                if(k % 2 == 1) printf("\n");
-//            }
         }
     }
 
@@ -357,14 +346,19 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
 
     permutation(array, 0, mapInfo->princess-1, &best, matrix, mapInfo);
 
-    for (int i = 0; i < best->length * 2; ++i) {
-        printf("%d ",best->path[i]);
-        if(i % 2 == 1) printf("\n");
+    int oldLength = length;
+    length += best->length;
+    int *finalPath =(int*) malloc(length * 2* sizeof(int));
+    for (int k = 0; k < oldLength*2; ++k) {
+        finalPath[k] = dragonPath[k];
+    }
+    for (int i = oldLength * 2, j = 0; i < length * 2; ++i, j++) {
+        finalPath[i] = best->path[j];
     }
 
     //iba po draka
     *dlzka_cesty = length;
-    return path;
+    return finalPath;
 }
 
 
@@ -374,33 +368,33 @@ int main()
     int i, test, dlzka_cesty, cas, *cesta;
     int n=0, m=0, t=0;
     FILE* f;
-//    while(1){
-//        printf("Zadajte cislo testu (0 ukonci program):\n");
-//        scanf("%d",&test);
+    while(1){
+        printf("Zadajte cislo testu (0 ukonci program):\n");
+        scanf("%d",&test);
         dlzka_cesty = 0;
         n=m=t=0;
-//        switch(test){
-//            case 0://ukonci program
-//                return 0;
-//            case 1://nacitanie mapy zo suboru
-//                f=fopen("test.txt","r");
-//                if(f)
-//                    fscanf(f, "%d %d %d", &n, &m, &t);
-//                else
-//                    continue;
-//                mapa = (char**)malloc(n*sizeof(char*));
-//                for(i=0; i<n; i++){
-//                    mapa[i] = (char*)malloc(m*sizeof(char));
-//                    for (int j=0; j<m; j++){
-//                        char policko = fgetc(f);
-//                        if(policko == '\n') policko = fgetc(f);
-//                        mapa[i][j] = policko;
-//                    }
-//                }
-//                fclose(f);
-//                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
-//                break;
-//            case 2://nacitanie preddefinovanej mapy
+        switch(test){
+            case 0://ukonci program
+                return 0;
+            case 1://nacitanie mapy zo suboru
+                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\test.txt","r");
+                if(f)
+                    fscanf(f, "%d %d %d", &n, &m, &t);
+                else
+                    continue;
+                mapa = (char**)malloc(n*sizeof(char*));
+                for(i=0; i<n; i++){
+                    mapa[i] = (char*)malloc(m*sizeof(char));
+                    for (int j=0; j<m; j++){
+                        char policko = fgetc(f);
+                        if(policko == '\n') policko = fgetc(f);
+                        mapa[i][j] = policko;
+                    }
+                }
+                fclose(f);
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 2://nacitanie preddefinovanej mapy
                 n = 10;
                 m = 10;
                 t = 12;
@@ -416,32 +410,32 @@ int main()
                 mapa[8]=strdup("CCCNNHHHHH");
                 mapa[9]=strdup("HHHPCCCCCC");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
-//                break;
-//            case 3: //pridajte vlastne testovacie vzorky
-//            default:
-//                continue;
-//        }
-//        cas = 0;
-//        for(i=0; i<dlzka_cesty; i++){
-//            printf("%d %d\n", cesta[i*2], cesta[i*2+1]);
-//            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'H')
-//                cas+=2;
-//            else
-//                cas+=1;
-//            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'D' && cas > t)
-//                printf("Nestihol si zabit draka!\n");
-//            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'N')
-//                printf("Prechod cez nepriechodnu prekazku!\n");
-//            if(i>0 && abs(cesta[i*2+1]-cesta[(i-1)*2+1])+abs(cesta[i*2]-cesta[(i-1)*2])>1)
-//                printf("Neplatny posun Popolvara!\n");
-//        }
-//        printf("%d\n",cas);
-//        free(cesta);
-//        for(i=0; i<n; i++){
-//            free(mapa[i]);
-//        }
-//        free(mapa);
-//    }
+                break;
+            case 3: //pridajte vlastne testovacie vzorky
+            default:
+                continue;
+        }
+        cas = 0;
+        for(i=0; i<dlzka_cesty; i++){
+            printf("%d %d\n", cesta[i*2], cesta[i*2+1]);
+           if(mapa[cesta[i*2+1]][cesta[i*2]] == 'H')
+                cas+=2;
+            else
+                cas+=1;
+            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'D' && cas > t)
+                printf("Nestihol si zabit draka!\n");
+            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'N')
+                printf("Prechod cez nepriechodnu prekazku!\n");
+            if(i>0 && abs(cesta[i*2+1]-cesta[(i-1)*2+1])+abs(cesta[i*2]-cesta[(i-1)*2])>1)
+                printf("Neplatny posun Popolvara!\n");
+        }
+        printf("%d\n",cas);
+        free(cesta);
+        for(i=0; i<n; i++){
+            free(mapa[i]);
+        }
+        free(mapa);
+    }
     return 0;
 }
 
