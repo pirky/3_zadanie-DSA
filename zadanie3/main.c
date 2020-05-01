@@ -27,6 +27,7 @@ typedef struct mapInfo{
 }MAPINFO;
 
 typedef struct matrixNode{
+    int prize;
     int length;
     int *path;
 }MATRIXNODE;
@@ -177,13 +178,13 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
     }
 }
 
-int pathLength(VERTEX *temp){
-    int length = 0;
+int pathPrize(VERTEX ***vertexMap,VERTEX *temp){
+    int prize = 0;
     while(temp != NULL){
-        length +=2;
+        prize += typeSize(vertexMap,temp->x,temp->y);
         temp = temp->before;
     }
-    return length;
+    return prize;
 }
 
 int *pathMap(VERTEX *start, VERTEX *end, int length, int *path){
@@ -195,6 +196,95 @@ int *pathMap(VERTEX *start, VERTEX *end, int length, int *path){
     pathMap(start,end->before,length - 2,path);
 }
 
+int pathLength(VERTEX *temp){
+    int length = 0;
+    while(temp != NULL){
+        length++;
+        temp = temp->before;
+    }
+    return length;
+}
+
+int sumPrizes(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo){
+    int sum = matrix[0][array[0]]->prize - 1;
+    for (int i = 0; i < mapInfo->princess - 1; i++){
+        sum += matrix[array[i]][array[i + 1]]->prize - 1;
+    }
+//    printf("sumPrize = %d\n",sum);
+    return sum;
+}
+
+int sumLength(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo){
+    int sum = matrix[0][array[0]]->length - 1, i;
+    for (int i = 0; i < mapInfo->princess - 1; i++){
+        sum += matrix[array[i]][array[i + 1]]->length - 1;
+    }
+//    printf("sumLength = %d\n",sum);
+    return sum;
+}
+
+int *sumPath(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo, MATRIXNODE *current){
+    int *path = (int*)malloc(current->length * 2 * sizeof(int)), i = 2, k = 0;
+    while(i < matrix[0][array[0]]->length * 2){
+        path[k] = matrix[0][array[0]]->path[i];
+//        printf("%d ",path[k]);
+//        if(i % 2 == 1) printf("\n");
+        k++;
+        i++;
+    }
+
+    for (int j = 0; j < mapInfo->princess - 1; ++j){
+        int i = 2;
+        while(i < matrix[array[j]][array[j + 1]]->length * 2){
+            path[k] = matrix[array[j]][array[j + 1]]->path[i];
+//            printf("%d ",path[k]);
+//            if(i % 2 == 1) printf("\n");
+            k++;
+            i++;
+        }
+    }
+    return path;
+}
+
+MATRIXNODE *createPathNode(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo){
+    MATRIXNODE *current = (MATRIXNODE*)malloc(sizeof(MATRIXNODE));
+    current->prize = sumPrizes(array,matrix, mapInfo);
+    current->length = sumLength(array,matrix, mapInfo);
+    current->path = (int*)malloc(current->length * 2 * sizeof(int));
+    current->path = sumPath(array,matrix,mapInfo,current);
+    return current;
+}
+
+void bestPath(MATRIXNODE *current,MATRIXNODE **best){
+    if((*best) == NULL || current->prize < (*best)->prize){
+        (*best) = (MATRIXNODE*) malloc(sizeof(MATRIXNODE));
+        (*best)->path = current->path;
+        (*best)->length = current->length;
+        (*best)->prize = current->prize;
+    }
+}
+
+void swap(int *a, int *b){
+    int temp;
+    temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void permutation(int *array, int start, int end, MATRIXNODE **best, MATRIXNODE ***matrix, MAPINFO *mapInfo){
+    if(start == end){
+        MATRIXNODE *current;
+//        printf("0 %d %d %d\n", array[0],array[1],array[2]);
+        current = createPathNode(array, matrix, mapInfo);
+        bestPath(current,best);
+        return;
+    }
+    for(int i = start; i <= end; i++){
+        swap((array + i), (array + start));
+        permutation(array, start + 1, end, best, matrix, mapInfo);
+        swap((array + i), (array + start));
+    }
+}
 
 int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
     MAPINFO *mapInfo = (MAPINFO*)malloc(sizeof(MAPINFO));
@@ -207,14 +297,16 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
     //zabitie draka
 
     VERTEX *popolvar = mapInfo->vertexMap[0][0];
-    VERTEX *dragon = mapInfo->vertexMap[mapInfo->characters[1][0]][mapInfo->characters[1][1]];
+    VERTEX *dragon = mapInfo->vertexMap[mapInfo->characters[0][0]][mapInfo->characters[0][1]];
     dragon = dijkstra(mapInfo,popolvar,dragon,heapinfo);
 
+    int prize = pathPrize(mapInfo->vertexMap,dragon);
     int length = pathLength(dragon);
-    int *path = (int*)malloc(length * sizeof(int));
-    path = pathMap(popolvar, dragon, length - 1, path);
+    int *path = (int*)malloc(length * 2 * sizeof(int));
+    path = pathMap(popolvar, dragon, length * 2 - 1, path);
 
-//    for (int k = 0; k < length; ++k) {
+//    printf("length = %3d prize = %3d\n",length,prize);
+//    for (int k = 0; k < length * 2; ++k) {
 //        printf("%d ",path[k]);
 //        if(k % 2 == 1) printf("\n");
 //    }
@@ -234,6 +326,7 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
             heapinfo = malloc(sizeof(HEAPINFO));
             heapinfo->elements = 0;
             if(i == j) {
+                matrix[i][j]->prize = 0;
                 matrix[i][j]->length = 0;
                 matrix[i][j]->path = NULL;
                 continue;
@@ -241,20 +334,39 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
             VERTEX *start = mapInfo->vertexMap[mapInfo->characters[i][0]][mapInfo->characters[i][1]];
             VERTEX *finish = mapInfo->vertexMap[mapInfo->characters[j][0]][mapInfo->characters[j][1]];
             VERTEX *character = dijkstra(mapInfo,start,finish,heapinfo);
+            int characterPrize = pathPrize(mapInfo->vertexMap,character);
             int characterLength = pathLength(character);
-            int *characterPath = (int*)malloc(characterLength * sizeof(int));
-            characterPath = pathMap(start, finish, characterLength - 1, characterPath);
+            int *characterPath = (int*)malloc(characterLength * 2 * sizeof(int));
+            characterPath = pathMap(start, finish, characterLength * 2 - 1, characterPath);
+            matrix[i][j]->prize = characterPrize;
             matrix[i][j]->length = characterLength;
             matrix[i][j]->path = characterPath;
+//            printf("length = %3d prize = %3d\n",characterLength,characterPrize);
+//            for (int k = 0; k < characterLength * 2; ++k) {
+//                printf("%d ",characterPath[k]);
+//                if(k % 2 == 1) printf("\n");
+//            }
         }
     }
 
+    int array[6];
+    MATRIXNODE *best = NULL;
+    for(int i = 1; i <= mapInfo->princess; i++){
+        array[i-1] = i;
+    }
 
+    permutation(array, 0, mapInfo->princess-1, &best, matrix, mapInfo);
+
+    for (int i = 0; i < best->length * 2; ++i) {
+        printf("%d ",best->path[i]);
+        if(i % 2 == 1) printf("\n");
+    }
 
     //iba po draka
-    *dlzka_cesty = length/2;
+    *dlzka_cesty = length;
     return path;
 }
+
 
 int main()
 {
@@ -332,6 +444,7 @@ int main()
 //    }
     return 0;
 }
+
 
 ///test halda
 //void main(){
