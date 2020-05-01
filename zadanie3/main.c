@@ -15,7 +15,7 @@ typedef struct vertex{
 
 typedef struct heapInfo{
     int elements;
-    VERTEX *heap[10000];
+    VERTEX *heap[300];
 }HEAPINFO;
 
 typedef struct mapInfo{
@@ -438,60 +438,3 @@ int main()
     }
     return 0;
 }
-
-
-///test halda
-//void main(){
-//    HEAPINFO *heapinfo = malloc(sizeof(HEAPINFO));
-//    heapinfo->elements = 0;
-//    heapinfo->heap;
-//    VERTEX *vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 20;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 13;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 14;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 5;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 6;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 2;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 1;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 7;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 9;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 10;
-//    push(vertex,heapinfo);
-//
-//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
-//    vertex->length = 8;
-//    push(vertex,heapinfo);
-//
-//    printHeap(heapinfo);
-//    for (int i = 0; i < 11; ++i) {
-//        printf("%d\n",pop(heapinfo)->length);
-//    }
-//
-//}
