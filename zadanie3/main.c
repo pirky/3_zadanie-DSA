@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#define MIN(a,b) ((a)->lenght < (b)->lenght ? (a) : (b))
+#define MIN(a,b) ((a)->length < (b)->length ? (a) : (b))
 
 typedef struct vertex{
     int x;
     int y;
-    int lenght;
+    int length;
     char type;
     struct vertex *before;
     char ok;
@@ -14,8 +15,21 @@ typedef struct vertex{
 
 typedef struct heapInfo{
     int elements;
-    VERTEX *heap[10000];
+    VERTEX *heap[1000];
 }HEAPINFO;
+
+typedef struct mapInfo{
+    int m;
+    int n;
+    int princess;
+    int characters[6][2];
+    VERTEX ***vertexMap;
+}MAPINFO;
+
+typedef struct matrixNode{
+    int length;
+    int *path;
+}MATRIXNODE;
 
 void push(VERTEX *newVertex, HEAPINFO *heapinfo){
     heapinfo->elements++;
@@ -24,7 +38,7 @@ void push(VERTEX *newVertex, HEAPINFO *heapinfo){
     if(elements == 1){
         return;
     }
-    while((elements/2 > 0) && newVertex->lenght < heapinfo->heap[elements / 2]->lenght){
+    while((elements/2 > 0) && (newVertex->length < heapinfo->heap[elements / 2]->length)){
         heapinfo->heap[elements] = heapinfo->heap[elements/2];
         heapinfo->heap[elements/2] = newVertex;
         elements /= 2;
@@ -32,175 +46,215 @@ void push(VERTEX *newVertex, HEAPINFO *heapinfo){
 }
 
 VERTEX *pop(HEAPINFO *heapinfo){
-    VERTEX *poped = heapinfo->heap[1], *node, *min;
+    VERTEX *poped = heapinfo->heap[1], *vertex, *min;
     if(poped == NULL){
         return NULL;
     }
     int  i = 1, elements = heapinfo->elements;
-    node = heapinfo->heap[1] = heapinfo->heap[elements];
-    while(((i *= 2) + 1 <= elements) && (node->lenght > (min = MIN(heapinfo->heap[i],heapinfo->heap[i + 1]))->lenght)){
-        if(min->lenght == heapinfo->heap[i]->lenght){
+    vertex = heapinfo->heap[1] = heapinfo->heap[elements];
+
+    while(((i *= 2) + 1 <= elements) && (vertex->length > (min = MIN(heapinfo->heap[i], heapinfo->heap[i + 1]))->length)){
+        if(min == heapinfo->heap[i]){
+            heapinfo->heap[i] = vertex;
             heapinfo->heap[i / 2] = min;
-            heapinfo->heap[i] = node;
         }
-        if(min->lenght == heapinfo->heap[i + 1]->lenght){
+        if(min == heapinfo->heap[i + 1]){
+            heapinfo->heap[i + 1] = vertex;
             heapinfo->heap[i / 2] = min;
-            heapinfo->heap[i + 1] = node;
             i++;
         }
     }
 
-    if((i == elements) && (node->lenght > (min = heapinfo->heap[i])->lenght)){
-        heapinfo->heap[i / 2] = min;
-        heapinfo->heap[i] = node;
-    }
-
+    heapinfo->heap[elements] = NULL;
     heapinfo->elements--;
     return poped;
 }
 
 void printHeap(HEAPINFO *heapinfo){
     for(int i = 1; i <= heapinfo->elements; i++){
-        printf("%d, ", heapinfo->heap[i]->lenght);
+        printf("%d, ", heapinfo->heap[i]->length);
     }
     printf("\n");
 }
 
-VERTEX ***createMapNode(int n, int m, char **mapa, int *princess, VERTEX***princessMap, VERTEX**dragon){
-    VERTEX ***mapNode = (VERTEX***)malloc(n * sizeof(VERTEX**));
-    for(int i = 0; i < n; i++) {
-        mapNode[i] = (VERTEX**)malloc(m * sizeof(VERTEX*));
-        for (int j = 0; j < m; j++) {
-            mapNode[i][j] = (VERTEX *) malloc(sizeof(VERTEX));
-            mapNode[i][j]->x = i;
-            mapNode[i][j]->y = j;
-            mapNode[i][j]->lenght = 2147483647;
-            mapNode[i][j]->before = NULL;
-            mapNode[i][j]->type = mapa[i][j];
-            mapNode[i][j]->ok = 0;
+VERTEX ***createMapNode(MAPINFO *mapInfo,char **mapa){
+    VERTEX ***vertexMap = (VERTEX***)malloc(mapInfo->n * sizeof(VERTEX**));
+    mapInfo->princess = 0;
+    for(int i = 0; i < mapInfo->n; i++) {
+        vertexMap[i] = (VERTEX**)malloc(mapInfo->m * sizeof(VERTEX*));
+        for (int j = 0; j < mapInfo->m; j++) {
+            vertexMap[i][j] = (VERTEX *) malloc(sizeof(VERTEX));
+            vertexMap[i][j]->x = i;
+            vertexMap[i][j]->y = j;
+            vertexMap[i][j]->length = 2147483647;
+            vertexMap[i][j]->before = NULL;
+            vertexMap[i][j]->type = mapa[i][j];
+            vertexMap[i][j]->ok = 0;
             if(mapa[i][j] == 'N'){
-                mapNode[i][j]->ok = 1;
+                vertexMap[i][j]->ok = 1;
+                vertexMap[i][j]->length = 0;
             }
             if(mapa[i][j] == 'P'){
-                (*princessMap)[*princess] = (VERTEX*) malloc(sizeof(VERTEX));
-                (*princessMap)[*princess]->x = i;
-                (*princessMap)[*princess]->y = j;
-                (*princessMap)[*princess]->ok = 0;
-                (*princessMap)[*princess]->type = 'P';
-                (*princessMap)[*princess]->lenght = 214748647;
-                (*princessMap)[*princess]->before = NULL;
-                (*princess)++;
+                mapInfo->princess++;
+                mapInfo->characters[mapInfo->princess][0] = i;
+                mapInfo->characters[mapInfo->princess][1] = j;
             }
             if(mapa[i][j] == 'D'){
-                (*dragon)->x = i;
-                (*dragon)->y = j;
-                (*dragon)->lenght = 2147483647;
-                (*dragon)->before = NULL;
-                (*dragon)->type = mapa[i][j];
-                (*dragon)->ok = 0;
+                mapInfo->characters[0][0] = i;                          //x-ova súradnica
+                mapInfo->characters[0][1] = j;                          //y-ova súradnica
             }
         }
     }
-    return mapNode;
+    return vertexMap;
 }
 
 void printMap(VERTEX ***vertexMap, int n, int m){
     for(int i = 0; i < n; i++){
         for (int j = 0; j < m; ++j) {
-            printf("%c",vertexMap[i][j]->type);
+            printf("%3d",vertexMap[i][j]->length);
         }
         printf("\n");
     }
 }
 
-int gain(VERTEX ***vertexMap, int x, int y){
+int typeSize(VERTEX ***vertexMap, int x, int y){
     char type = vertexMap[x][y]->type;
     if ((type == 'C') || (type == 'P') || type == 'D') return 1;
     if (type == 'H') return 2;
     return 0;
 }
 
-VERTEX* dijkstra(VERTEX ***vertexMap,VERTEX* start, VERTEX* finish, HEAPINFO *heapinfo, int m, int n){
+VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heapinfo){
+    mapInfo->vertexMap[start->x][start->y]->length = typeSize(mapInfo->vertexMap,start->x,start->y);
     push(start, heapinfo);
-    while(finish->ok == 0){
+    while(1){
         VERTEX *min = pop(heapinfo);
         if(min == NULL){
             return NULL;
         }
+        if(min == finish){
+            return finish;
+        }
         min->ok = 1;
         int x = min->x;
         int y = min->y;
-        if(min->type == finish->type){
-            finish->ok = 1;
-        }
-        //relax
-        if((y + 1 < m) && (vertexMap[x][y + 1]->ok == 0)){        //doprava
+        if((y + 1 < mapInfo->m) && (mapInfo->vertexMap[x][y + 1] != min->before) && (mapInfo->vertexMap[x][y + 1]->ok == 0)){        //doprava
             int plus = 0;
-            plus = gain(vertexMap, x, y + 1);
-            if((vertexMap[x][y + 1]->lenght > min->lenght + plus)){
-                vertexMap[x][y + 1]->lenght = min->lenght + plus;
-                vertexMap[x][y + 1]->before = min;
-                push(vertexMap[x][y + 1],heapinfo);
+            plus = typeSize(mapInfo->vertexMap, x, y + 1);
+            if((mapInfo->vertexMap[x][y + 1]->length > min->length + plus)){
+                mapInfo->vertexMap[x][y + 1]->length = min->length + plus;
+                mapInfo->vertexMap[x][y + 1]->before = min;
             }
+            push(mapInfo->vertexMap[x][y + 1], heapinfo);
         }
-        if((x + 1 < n) && (vertexMap[x + 1][y]->ok == 0)){        //dole
+        if((x + 1 < mapInfo->n) && (mapInfo->vertexMap[x + 1][y] != min->before) && (mapInfo->vertexMap[x + 1][y]->ok == 0)){        //dole
             int plus = 0;
-            plus = gain(vertexMap, x + 1, y);
-            if((vertexMap[x + 1][y]->lenght > min->lenght + plus)){
-                vertexMap[x + 1][y]->lenght = min->lenght + plus;
-                vertexMap[x + 1][y]->before = min;
-                push(vertexMap[x + 1][y],heapinfo);
+            plus = typeSize(mapInfo->vertexMap, x + 1, y);
+            if((mapInfo->vertexMap[x + 1][y]->length > min->length + plus)){
+                mapInfo->vertexMap[x + 1][y]->length = min->length + plus;
+                mapInfo->vertexMap[x + 1][y]->before = min;
             }
+            push(mapInfo->vertexMap[x + 1][y], heapinfo);
         }
-        if((y - 1 >= 0) && (vertexMap[x][y - 1]->ok == 0)){        //dolava
+        if((y - 1 >= 0) && (mapInfo->vertexMap[x][y - 1] != min->before) && (mapInfo->vertexMap[x][y - 1]->ok == 0)){        //dolava
             int plus = 0;
-            plus = gain(vertexMap, x, y - 1);
-            if((vertexMap[x][y - 1]->lenght > min->lenght + plus)){
-                vertexMap[x][y - 1]->lenght = min->lenght + plus;
-                vertexMap[x][y - 1]->before = min;
-                push(vertexMap[x][y - 1],heapinfo);
+            plus = typeSize(mapInfo->vertexMap, x, y - 1);
+            if((mapInfo->vertexMap[x][y - 1]->length > min->length + plus)){
+                mapInfo->vertexMap[x][y - 1]->length = min->length + plus;
+                mapInfo->vertexMap[x][y - 1]->before = min;
             }
+            push(mapInfo->vertexMap[x][y - 1], heapinfo);
         }
-        if((x - 1 >= 0) && (vertexMap[x - 1][y]->ok == 0)){        //hore
+        if((x - 1 >= 0) && (mapInfo->vertexMap[x - 1][y] != min->before) && (mapInfo->vertexMap[x - 1][y]->ok == 0)){        //hore
             int plus = 0;
-            plus = gain(vertexMap, x - 1, y);
-            if((vertexMap[x - 1][y]->lenght > min->lenght + plus)){
-                vertexMap[x - 1][y]->lenght = min->lenght + plus;
-                vertexMap[x - 1][y]->before = min;
-                push(vertexMap[x - 1][y],heapinfo);
+            plus = typeSize(mapInfo->vertexMap, x - 1, y);
+            if((mapInfo->vertexMap[x - 1][y]->length > min->length + plus)){
+                mapInfo->vertexMap[x - 1][y]->length = min->length + plus;
+                mapInfo->vertexMap[x - 1][y]->before = min;
             }
+            push(mapInfo->vertexMap[x - 1][y], heapinfo);
         }
     }
 }
 
-int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
-    VERTEX ***vertexMap, **princessMap, *dragon;
-    int princess = 0;
-    dragon = (VERTEX*) malloc(sizeof(VERTEX));
-    princessMap = (VERTEX**) malloc(5 * sizeof(VERTEX*));
-    vertexMap = createMapNode(n, m, mapa, &princess, &princessMap, &dragon);                //inicializacia, pole princezien, drak, mapa vrcholov s údajmi
-
-    HEAPINFO *heapinfo = malloc(sizeof(HEAPINFO));
-    heapinfo->elements = 0;
-    vertexMap[0][0]->ok = 1;
-    if(vertexMap[0][0]->type == 'C'){
-        vertexMap[0][0]->lenght = 1;
-    }
-    else if (vertexMap[0][0]->type == 'H'){
-        vertexMap[0][0]->lenght = 2;
-    }
-    dijkstra(vertexMap,vertexMap[0][0],dragon,heapinfo,m,n);
-
-
-    int *road = malloc(10000 * sizeof(int));
-    VERTEX *temp = vertexMap[dragon->x][dragon->y];
+int pathLength(VERTEX *temp){
+    int length = 0;
     while(temp != NULL){
-        printf("%d %d\n",temp->y, temp->x);
+        length +=2;
         temp = temp->before;
     }
-    return NULL;
+    return length;
 }
 
+int *pathMap(VERTEX *start, VERTEX *end, int length, int *path){
+    path[length] = end->x;
+    path[length - 1] = end->y;
+    if(start == end){
+        return path;
+    }
+    pathMap(start,end->before,length - 2,path);
+}
+
+
+int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
+    MAPINFO *mapInfo = (MAPINFO*)malloc(sizeof(MAPINFO));
+    mapInfo->m = m;
+    mapInfo->n = n;
+    mapInfo->vertexMap = createMapNode(mapInfo, mapa);                //inicializacia, pole suradníc princezien a draka, mapa vrcholov s údajmi
+    HEAPINFO *heapinfo = malloc(sizeof(HEAPINFO));
+    heapinfo->elements = 0;
+
+    //zabitie draka
+
+    VERTEX *popolvar = mapInfo->vertexMap[0][0];
+    VERTEX *dragon = mapInfo->vertexMap[mapInfo->characters[1][0]][mapInfo->characters[1][1]];
+    dragon = dijkstra(mapInfo,popolvar,dragon,heapinfo);
+
+    int length = pathLength(dragon);
+    int *path = (int*)malloc(length * sizeof(int));
+    path = pathMap(popolvar, dragon, length - 1, path);
+
+//    for (int k = 0; k < length; ++k) {
+//        printf("%d ",path[k]);
+//        if(k % 2 == 1) printf("\n");
+//    }
+
+    MATRIXNODE ***matrix = (MATRIXNODE***) malloc((mapInfo->princess + 1) * sizeof(MATRIXNODE**));      //matica susednosti princezien a draka
+    for (int i = 0; i < mapInfo->princess + 1; ++i) {
+        matrix[i] = (MATRIXNODE**) malloc((mapInfo->princess + 1) * sizeof(MATRIXNODE*));
+        for (int j = 0; j < mapInfo->princess + 1; ++j) {
+            matrix[i][j] = (MATRIXNODE*) malloc(sizeof(MATRIXNODE));
+        }
+    }
+
+    //naplnenie matice, teda najdenie najkratsej cesty medzi dvoma bodmi
+    for (int i = 0; i < mapInfo->princess + 1; ++i) {
+        for (int j = 0; j < mapInfo->princess + 1; ++j) {
+            mapInfo->vertexMap = createMapNode(mapInfo,mapa);
+            heapinfo = malloc(sizeof(HEAPINFO));
+            heapinfo->elements = 0;
+            if(i == j) {
+                matrix[i][j]->length = 0;
+                matrix[i][j]->path = NULL;
+                continue;
+            }
+            VERTEX *start = mapInfo->vertexMap[mapInfo->characters[i][0]][mapInfo->characters[i][1]];
+            VERTEX *finish = mapInfo->vertexMap[mapInfo->characters[j][0]][mapInfo->characters[j][1]];
+            VERTEX *character = dijkstra(mapInfo,start,finish,heapinfo);
+            int characterLength = pathLength(character);
+            int *characterPath = (int*)malloc(characterLength * sizeof(int));
+            characterPath = pathMap(start, finish, characterLength - 1, characterPath);
+            matrix[i][j]->length = characterLength;
+            matrix[i][j]->path = characterPath;
+        }
+    }
+
+
+
+    //iba po draka
+    *dlzka_cesty = length/2;
+    return path;
+}
 
 int main()
 {
@@ -239,42 +293,98 @@ int main()
                 m = 10;
                 t = 12;
                 mapa = (char**)malloc(n*sizeof(char*));
-                mapa[0]="CCHCNHCCHN";
-                mapa[1]="NNCCCHHCCC";
-                mapa[2]="DNCCNNHHHC";
-                mapa[3]="CHHHCCCCCC";
-                mapa[4]="CCCCCNHHHH";
-                mapa[5]="PCHCCCNNNN";
-                mapa[6]="NNNNNHCCCC";
-                mapa[7]="CCCCCPCCCC";
-                mapa[8]="CCCNNHHHHH";
-                mapa[9]="HHHPCCCCCC";
+                mapa[0]=strdup("CCHCNHCCHN");
+                mapa[1]=strdup("NNCCCHHCCC");
+                mapa[2]=strdup("DNCCNNHHHC");
+                mapa[3]=strdup("CHHHCCCCCC");
+                mapa[4]=strdup("CCCCCNHHHH");
+                mapa[5]=strdup("PCHCCCNNNN");
+                mapa[6]=strdup("NNNNNHCCCC");
+                mapa[7]=strdup("CCCCCPCCCC");
+                mapa[8]=strdup("CCCNNHHHHH");
+                mapa[9]=strdup("HHHPCCCCCC");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
 //                break;
 //            case 3: //pridajte vlastne testovacie vzorky
 //            default:
 //                continue;
 //        }
-        cas = 0;
-        for(i=0; i<dlzka_cesty; i++){
-            printf("%d %d\n", cesta[i*2], cesta[i*2+1]);
-            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'H')
-                cas+=2;
-            else
-                cas+=1;
-            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'D' && cas > t)
-                printf("Nestihol si zabit draka!\n");
-            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'N')
-                printf("Prechod cez nepriechodnu prekazku!\n");
-            if(i>0 && abs(cesta[i*2+1]-cesta[(i-1)*2+1])+abs(cesta[i*2]-cesta[(i-1)*2])>1)
-                printf("Neplatny posun Popolvara!\n");
-        }
-        printf("%d\n",cas);
-        free(cesta);
-        for(i=0; i<n; i++){
-            free(mapa[i]);
-        }
-        free(mapa);
+//        cas = 0;
+//        for(i=0; i<dlzka_cesty; i++){
+//            printf("%d %d\n", cesta[i*2], cesta[i*2+1]);
+//            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'H')
+//                cas+=2;
+//            else
+//                cas+=1;
+//            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'D' && cas > t)
+//                printf("Nestihol si zabit draka!\n");
+//            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'N')
+//                printf("Prechod cez nepriechodnu prekazku!\n");
+//            if(i>0 && abs(cesta[i*2+1]-cesta[(i-1)*2+1])+abs(cesta[i*2]-cesta[(i-1)*2])>1)
+//                printf("Neplatny posun Popolvara!\n");
+//        }
+//        printf("%d\n",cas);
+//        free(cesta);
+//        for(i=0; i<n; i++){
+//            free(mapa[i]);
+//        }
+//        free(mapa);
 //    }
     return 0;
 }
+
+///test halda
+//void main(){
+//    HEAPINFO *heapinfo = malloc(sizeof(HEAPINFO));
+//    heapinfo->elements = 0;
+//    heapinfo->heap;
+//    VERTEX *vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 20;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 13;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 14;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 5;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 6;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 2;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 1;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 7;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 9;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 10;
+//    push(vertex,heapinfo);
+//
+//    vertex = (VERTEX*)malloc(sizeof(VERTEX));
+//    vertex->length = 8;
+//    push(vertex,heapinfo);
+//
+//    printHeap(heapinfo);
+//    for (int i = 0; i < 11; ++i) {
+//        printf("%d\n",pop(heapinfo)->length);
+//    }
+//
+//}
