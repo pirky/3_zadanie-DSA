@@ -2,12 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MIN(a,b) ((a)->length < (b)->length ? (a) : (b))
+/*
+ * makro na zistenie menšieho dieťaťa v halde
+ */
+
+#define MIN(a,b) ((a)->price < (b)->price ? (a) : (b))
+
+/*
+ * štruktúra vertex obsahuje všetky informácie o jednom vrchole v mape,
+ * premenná "ok" hovorí o tom, či už bol daný vrchol prejdený
+ */
 
 typedef struct vertex{
     int x;
     int y;
-    int length;
+    int price;
     char type;
     struct vertex *before;
     char ok;
@@ -18,6 +27,11 @@ typedef struct heapInfo{
     VERTEX *heap[300];
 }HEAPINFO;
 
+/*
+ * štruktúra mapInfo obsahuje rozmery mapy, počet princezien, súradnice draka
+ * a všetkých princezien a mapu
+ */
+
 typedef struct mapInfo{
     int m;
     int n;
@@ -27,10 +41,14 @@ typedef struct mapInfo{
 }MAPINFO;
 
 typedef struct matrixNode{
-    int prize;
+    int price;
     int length;
     int *path;
 }MATRIXNODE;
+
+/*
+ * funkcia push vloží do haldy daný vrchol
+ */
 
 void push(VERTEX *newVertex, HEAPINFO *heapinfo){
     heapinfo->elements++;
@@ -39,12 +57,17 @@ void push(VERTEX *newVertex, HEAPINFO *heapinfo){
     if(elements == 1){
         return;
     }
-    while((elements/2 > 0) && (newVertex->length < heapinfo->heap[elements / 2]->length)){
+    while((elements/2 > 0) && (newVertex->price < heapinfo->heap[elements / 2]->price)){
         heapinfo->heap[elements] = heapinfo->heap[elements/2];
         heapinfo->heap[elements/2] = newVertex;
         elements /= 2;
     }
 }
+
+/*
+ * funkcia pop vybere z haldy vrchol s najmenšou cenou cesty a vráti ho,
+ * v prípade, že je halda prázdna vráti NULL
+ */
 
 VERTEX *pop(HEAPINFO *heapinfo){
     VERTEX *poped = heapinfo->heap[1], *vertex, *min;
@@ -53,7 +76,7 @@ VERTEX *pop(HEAPINFO *heapinfo){
     }
     int  i = 1, elements = heapinfo->elements;
     vertex = heapinfo->heap[1] = heapinfo->heap[elements];
-    while(((i *= 2) + 1 <= elements) && (vertex->length > (min = MIN(heapinfo->heap[i], heapinfo->heap[i + 1]))->length)){
+    while(((i *= 2) + 1 <= elements) && (vertex->price > (min = MIN(heapinfo->heap[i], heapinfo->heap[i + 1]))->price)){
         if(min == heapinfo->heap[i]){
             heapinfo->heap[i] = vertex;
             heapinfo->heap[i / 2] = min;
@@ -64,20 +87,19 @@ VERTEX *pop(HEAPINFO *heapinfo){
             i++;
         }
     }
-
     heapinfo->heap[elements] = NULL;
     heapinfo->elements--;
     return poped;
 }
 
-void printHeap(HEAPINFO *heapinfo){
-    for(int i = 1; i <= heapinfo->elements; i++){
-        printf("%d, ", heapinfo->heap[i]->length);
-    }
-    printf("\n");
-}
+/*
+ * funkcia createMap vytvorí z mapy na vstupe mapu, ktorá bude mať všetky
+ * potrebné informácie o danom vrchole. Zároveň zráta počet princezien,
+ * a vytvorí pole so súradnicami draka a všetkými princeznami.
+ * Nakoniec túto mapu vráti.
+ */
 
-VERTEX ***createMapNode(MAPINFO *mapInfo,char **mapa){
+VERTEX ***createMap(MAPINFO *mapInfo, char **mapa){
     VERTEX ***vertexMap = (VERTEX***)malloc(mapInfo->n * sizeof(VERTEX**));
     mapInfo->princess = 0;
     for(int i = 0; i < mapInfo->n; i++) {
@@ -86,13 +108,13 @@ VERTEX ***createMapNode(MAPINFO *mapInfo,char **mapa){
             vertexMap[i][j] = (VERTEX *) malloc(sizeof(VERTEX));
             vertexMap[i][j]->x = i;
             vertexMap[i][j]->y = j;
-            vertexMap[i][j]->length = 2147483647;
+            vertexMap[i][j]->price = 2147483647;
             vertexMap[i][j]->before = NULL;
             vertexMap[i][j]->type = mapa[i][j];
             vertexMap[i][j]->ok = 0;
             if(mapa[i][j] == 'N'){
                 vertexMap[i][j]->ok = 1;
-                vertexMap[i][j]->length = 0;
+                vertexMap[i][j]->price = 0;
             }
             if(mapa[i][j] == 'P'){
                 mapInfo->princess++;
@@ -100,8 +122,8 @@ VERTEX ***createMapNode(MAPINFO *mapInfo,char **mapa){
                 mapInfo->characters[mapInfo->princess][1] = j;
             }
             if(mapa[i][j] == 'D'){
-                mapInfo->characters[0][0] = i;                          //x-ova súradnica
-                mapInfo->characters[0][1] = j;                          //y-ova súradnica
+                mapInfo->characters[0][0] = i;
+                mapInfo->characters[0][1] = j;
             }
         }
     }
@@ -111,90 +133,130 @@ VERTEX ***createMapNode(MAPINFO *mapInfo,char **mapa){
 void printMap(VERTEX ***vertexMap, int n, int m){
     for(int i = 0; i < n; i++){
         for (int j = 0; j < m; ++j) {
-            printf("%3d",vertexMap[i][j]->length);
+            printf("%c",vertexMap[i][j]->type);
         }
         printf("\n");
     }
 }
 
+/*
+ * funkcia typeSize vráti 2 ak je daný vrchol "H" - húština, inač vráti 1
+ */
+
 int typeSize(VERTEX ***vertexMap, int x, int y){
     char type = vertexMap[x][y]->type;
-    if ((type == 'C') || (type == 'P') || type == 'D') return 1;
     if (type == 'H') return 2;
-    return 0;
+    else return 1;
 }
 
+/*
+ * Dijkstrov algoritmus modifikovaný do zadania Popolvár
+ */
+
 VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heapinfo){
-    mapInfo->vertexMap[start->x][start->y]->length = typeSize(mapInfo->vertexMap,start->x,start->y);
+
+    /*
+     * inicializácia nastaením ceny v danom počiatočnom vrchole
+     * a pridanie tohto vrcholu do haldy
+     */
+
+    mapInfo->vertexMap[start->x][start->y]->price = typeSize(mapInfo->vertexMap, start->x, start->y);
     push(start, heapinfo);
     while(1){
         VERTEX *min = pop(heapinfo);
+
+        /*
+         * ak sa vrchol, ktorý vráti funkcia pop z haldy rovná cieľu,
+         * tak sa ukončí funkcia, pretože prehľadávenie došlo do cieľa
+         * a z neho už nie je potrebné prehľadávať mapu ďalej
+         */
+
         if(min == finish){
             return finish;
         }
         min->ok = 1;
         int x = min->x;
         int y = min->y;
-        if((y + 1 < mapInfo->m) && (mapInfo->vertexMap[x][y + 1] != min->before) && (mapInfo->vertexMap[x][y + 1]->ok == 0)){        //doprava
+
+        /*
+         * pridanie vrcholu do haldy napravo od polohy aktuálneho vrcholu, ak je
+         * po relaxácii cena cesty menšia ako aktuálna cesta v danom vrchole,
+         * respektíve ak ešte nebol daný vrchol zrelaxovaný
+         */
+
+        if((y + 1 < mapInfo->m) && (mapInfo->vertexMap[x][y + 1] != min) && (mapInfo->vertexMap[x][y + 1]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x, y + 1);
-            if((mapInfo->vertexMap[x][y + 1]->length > min->length + plus)){
-                mapInfo->vertexMap[x][y + 1]->length = min->length + plus;
+            if((mapInfo->vertexMap[x][y + 1]->price > min->price + plus)){
+                mapInfo->vertexMap[x][y + 1]->price = min->price + plus;
                 mapInfo->vertexMap[x][y + 1]->before = min;
                 push(mapInfo->vertexMap[x][y + 1], heapinfo);
             }
-
         }
-        if((x + 1 < mapInfo->n) && (mapInfo->vertexMap[x + 1][y] != min->before) && (mapInfo->vertexMap[x + 1][y]->ok == 0)){        //dole
+
+        /*
+         * pridanie dolného "suseda" do haldy na rovankom princípe ako je
+         * opísany vyššie
+         */
+
+        if((x + 1 < mapInfo->n) && (mapInfo->vertexMap[x + 1][y] != min) && (mapInfo->vertexMap[x + 1][y]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x + 1, y);
-            if((mapInfo->vertexMap[x + 1][y]->length > min->length + plus)){
-                mapInfo->vertexMap[x + 1][y]->length = min->length + plus;
+            if((mapInfo->vertexMap[x + 1][y]->price > min->price + plus)){
+                mapInfo->vertexMap[x + 1][y]->price = min->price + plus;
                 mapInfo->vertexMap[x + 1][y]->before = min;
                 push(mapInfo->vertexMap[x + 1][y], heapinfo);
             }
-
         }
-        if((y - 1 >= 0) && (mapInfo->vertexMap[x][y - 1] != min->before) && (mapInfo->vertexMap[x][y - 1]->ok == 0)){        //dolava
+
+        /*
+         * pridanie ľavého "suseda" do haldy na rovankom princípe ako je
+         * opísany vyššie
+         */
+
+        if((y - 1 >= 0) && (mapInfo->vertexMap[x][y - 1] != min) && (mapInfo->vertexMap[x][y - 1]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x, y - 1);
-            if((mapInfo->vertexMap[x][y - 1]->length > min->length + plus)){
-                mapInfo->vertexMap[x][y - 1]->length = min->length + plus;
+            if((mapInfo->vertexMap[x][y - 1]->price > min->price + plus)){
+                mapInfo->vertexMap[x][y - 1]->price = min->price + plus;
                 mapInfo->vertexMap[x][y - 1]->before = min;
                 push(mapInfo->vertexMap[x][y - 1], heapinfo);
             }
-
         }
-        if((x - 1 >= 0) && (mapInfo->vertexMap[x - 1][y] != min->before) && (mapInfo->vertexMap[x - 1][y]->ok == 0)){        //hore
+
+        /*
+         * pridanie horného "suseda" do haldy na rovankom princípe ako je
+         * opísany vyššie
+         */
+
+        if((x - 1 >= 0) && (mapInfo->vertexMap[x - 1][y] != min) && (mapInfo->vertexMap[x - 1][y]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x - 1, y);
-            if((mapInfo->vertexMap[x - 1][y]->length > min->length + plus)){
-                mapInfo->vertexMap[x - 1][y]->length = min->length + plus;
+            if((mapInfo->vertexMap[x - 1][y]->price > min->price + plus)){
+                mapInfo->vertexMap[x - 1][y]->price = min->price + plus;
                 mapInfo->vertexMap[x - 1][y]->before = min;
                 push(mapInfo->vertexMap[x - 1][y], heapinfo);
             }
-
         }
     }
 }
 
-int pathPrize(VERTEX ***vertexMap,VERTEX *temp){
-    int prize = 0;
+/*
+ * funkcia pathPrice zistí cenu konkrétnej cesty
+ */
+
+int pathPrice(VERTEX ***vertexMap, VERTEX *temp){
+    int price = 0;
     while(temp != NULL){
-        prize += typeSize(vertexMap,temp->x,temp->y);
+        price += typeSize(vertexMap, temp->x, temp->y);
         temp = temp->before;
     }
-    return prize;
+    return price;
 }
 
-int *pathMap(VERTEX *start, VERTEX *end, int length, int *path){
-    path[length] = end->x;
-    path[length - 1] = end->y;
-    if(start == end){
-        return path;
-    }
-    pathMap(start,end->before,length - 2,path);
-}
+/*
+ * funkcia pathLength zisti dĺžku cesty
+ */
 
 int pathLength(VERTEX *temp){
     int length = 0;
@@ -205,62 +267,96 @@ int pathLength(VERTEX *temp){
     return length;
 }
 
-int sumPrizes(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo){
-    int sum = matrix[0][array[0]]->prize - 1;
-    for (int i = 0; i < mapInfo->princess - 1; i++){
-        sum += matrix[array[i]][array[i + 1]]->prize - 1;
+/*
+ * funkcia pathMap vytvorí cestu zo štartovacieho vrcholu
+ * do konečného vrcholu a nakoniec ju vráti
+ */
+
+int *pathMap(VERTEX *start, VERTEX *end, int length, int *path){
+    path[length] = end->x;
+    path[length - 1] = end->y;
+    if(start == end){
+        return path;
     }
-//    printf("sumPrize = %d\n",sum);
+    pathMap(start,end->before,length - 2,path);
+}
+
+/*
+ * funkcia sumPrices zosumarizuje ceny ciest, z ktorých sa daná
+ * permutácia skladá
+ */
+
+int sumPrices(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo){
+    int sum = matrix[0][array[0]]->price - 1;
+    for (int i = 0; i < mapInfo->princess - 1; i++){
+        sum += matrix[array[i]][array[i + 1]]->price - 1;
+    }
     return sum;
 }
 
+/*
+ * funkcia sumLength zosumarizuje dĺžky ciest, z ktorých sa daná
+ * permutácia skladá
+ */
+
 int sumLength(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo){
-    int sum = matrix[0][array[0]]->length - 1, i;
+    int sum = matrix[0][array[0]]->length - 1;
     for (int i = 0; i < mapInfo->princess - 1; i++){
         sum += matrix[array[i]][array[i + 1]]->length - 1;
     }
-//    printf("sumLength = %d\n",sum);
     return sum;
 }
 
+/*
+ * funkcia sumPath spojí cesty v danej permutácií
+ */
+
 int *sumPath(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo, MATRIXNODE *current){
     int *path = (int*)malloc(current->length * 2 * sizeof(int)), i = 2, k = 0;
+
     while(i < matrix[0][array[0]]->length * 2){
         path[k] = matrix[0][array[0]]->path[i];
-//        printf("%d ",path[k]);
-//        if(i % 2 == 1) printf("\n");
         k++;
         i++;
     }
 
     for (int j = 0; j < mapInfo->princess - 1; ++j){
-        int i = 2;
-        while(i < matrix[array[j]][array[j + 1]]->length * 2){
-            path[k] = matrix[array[j]][array[j + 1]]->path[i];
-//            printf("%d ",path[k]);
-//            if(i % 2 == 1) printf("\n");
+        int iter = 2;
+        while(iter < matrix[array[j]][array[j + 1]]->length * 2){
+            path[k] = matrix[array[j]][array[j + 1]]->path[iter];
             k++;
-            i++;
+            iter++;
         }
     }
     return path;
 }
 
+/*
+ * funkcia createPathNode vytvorí vrchol matice z danej permutácie, ktorý
+ * obsahuje sumár dĺžok ciest, cien ciest a celú cestu od draka až
+ * po poslednú princeznú v danej permutácií
+ */
+
 MATRIXNODE *createPathNode(int *array, MATRIXNODE ***matrix, MAPINFO *mapInfo){
     MATRIXNODE *current = (MATRIXNODE*)malloc(sizeof(MATRIXNODE));
-    current->prize = sumPrizes(array,matrix, mapInfo);
+    current->price = sumPrices(array, matrix, mapInfo);
     current->length = sumLength(array,matrix, mapInfo);
     current->path = (int*)malloc(current->length * 2 * sizeof(int));
     current->path = sumPath(array,matrix,mapInfo,current);
     return current;
 }
 
+/*
+ * funkcia bestPath nájde cenovo najlepšiu cestu ako od draka
+ * pozbierať všetky princezné
+ */
+
 void bestPath(MATRIXNODE *current,MATRIXNODE **best){
-    if((*best) == NULL || current->prize < (*best)->prize){
+    if((*best) == NULL || current->price < (*best)->price){
         (*best) = (MATRIXNODE*) malloc(sizeof(MATRIXNODE));
         (*best)->path = current->path;
         (*best)->length = current->length;
-        (*best)->prize = current->prize;
+        (*best)->price = current->price;
     }
 }
 
@@ -271,10 +367,14 @@ void swap(int *a, int *b){
     *b = temp;
 }
 
+/*
+ * funkcia permutation spermutuje všetky možnosti ako pozbierať princezné,
+ * keď nájde nejakú permutáciu
+ */
+
 void permutation(int *array, int start, int end, MATRIXNODE **best, MATRIXNODE ***matrix, MAPINFO *mapInfo){
     if(start == end){
         MATRIXNODE *current;
-//        printf("0 %d %d %d\n", array[0],array[1],array[2]);
         current = createPathNode(array, matrix, mapInfo);
         bestPath(current,best);
         return;
@@ -290,22 +390,35 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
     MAPINFO *mapInfo = (MAPINFO*)malloc(sizeof(MAPINFO));
     mapInfo->m = m;
     mapInfo->n = n;
-    mapInfo->vertexMap = createMapNode(mapInfo, mapa);                //inicializacia, pole suradníc princezien a draka, mapa vrcholov s údajmi
-    HEAPINFO *heapinfo = malloc(sizeof(HEAPINFO));
+    mapInfo->vertexMap = createMap(mapInfo, mapa);
+    HEAPINFO *heapinfo = (HEAPINFO*) malloc(sizeof(HEAPINFO));
     heapinfo->elements = 0;
 
-    //zabitie draka
+    /*
+     * zabitie draka
+     */
 
     VERTEX *popolvar = mapInfo->vertexMap[0][0];
     VERTEX *dragon = mapInfo->vertexMap[mapInfo->characters[0][0]][mapInfo->characters[0][1]];
     dragon = dijkstra(mapInfo,popolvar,dragon,heapinfo);
+    int price = pathPrice(mapInfo->vertexMap, dragon);
 
-    int prize = pathPrize(mapInfo->vertexMap,dragon);
+    /*
+     * ak nestihnem zabiť draka vrátim NULL
+     */
+
+    if(price > t){
+        return NULL;
+    }
     int length = pathLength(dragon);
     int *dragonPath = (int*)malloc(length * 2 * sizeof(int));
     dragonPath = pathMap(popolvar, dragon, length * 2 - 1, dragonPath);
 
-    MATRIXNODE ***matrix = (MATRIXNODE***) malloc((mapInfo->princess + 1) * sizeof(MATRIXNODE**));      //matica susednosti princezien a draka
+    /*
+     * vytvorenie matice susednosti princezien a draka
+     */
+
+    MATRIXNODE ***matrix = (MATRIXNODE***) malloc((mapInfo->princess + 1) * sizeof(MATRIXNODE**));
     for (int i = 0; i < mapInfo->princess + 1; ++i) {
         matrix[i] = (MATRIXNODE**) malloc((mapInfo->princess + 1) * sizeof(MATRIXNODE*));
         for (int j = 0; j < mapInfo->princess + 1; ++j) {
@@ -313,14 +426,18 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
         }
     }
 
-    //naplnenie matice, teda najdenie najkratsej cesty medzi dvoma bodmi
+    /*
+     * naplnenie matice, teda najdenie najkratsej cesty medzi dvoma bodmi,
+     * uloženie tejto cesty ako aj jej ceny a dĺžky
+     */
+
     for (int i = 0; i < mapInfo->princess + 1; ++i) {
         for (int j = 0; j < mapInfo->princess + 1; ++j) {
-            mapInfo->vertexMap = createMapNode(mapInfo,mapa);
-            heapinfo = malloc(sizeof(HEAPINFO));
+            mapInfo->vertexMap = createMap(mapInfo, mapa);
+            heapinfo = (HEAPINFO*) malloc(sizeof(HEAPINFO));
             heapinfo->elements = 0;
             if(i == j) {
-                matrix[i][j]->prize = 0;
+                matrix[i][j]->price = 0;
                 matrix[i][j]->length = 0;
                 matrix[i][j]->path = NULL;
                 continue;
@@ -328,39 +445,45 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
             VERTEX *start = mapInfo->vertexMap[mapInfo->characters[i][0]][mapInfo->characters[i][1]];
             VERTEX *finish = mapInfo->vertexMap[mapInfo->characters[j][0]][mapInfo->characters[j][1]];
             VERTEX *character = dijkstra(mapInfo,start,finish,heapinfo);
-            int characterPrize = pathPrize(mapInfo->vertexMap,character);
+            int characterPrize = pathPrice(mapInfo->vertexMap, character);
             int characterLength = pathLength(character);
             int *characterPath = (int*)malloc(characterLength * 2 * sizeof(int));
             characterPath = pathMap(start, finish, characterLength * 2 - 1, characterPath);
-            matrix[i][j]->prize = characterPrize;
+            matrix[i][j]->price = characterPrize;
             matrix[i][j]->length = characterLength;
             matrix[i][j]->path = characterPath;
         }
     }
 
-    int array[6];
+    /*
+     * pole array reprezentuje jednu permutáciu princezien
+     */
+
+    int *array = (int*)malloc((mapInfo->princess + 1) * sizeof(int));
     MATRIXNODE *best = NULL;
     for(int i = 1; i <= mapInfo->princess; i++){
         array[i-1] = i;
     }
-
     permutation(array, 0, mapInfo->princess-1, &best, matrix, mapInfo);
 
     int oldLength = length;
     length += best->length;
     int *finalPath =(int*) malloc(length * 2* sizeof(int));
+
+    /*
+     * spojenie cesty ku drakovi a cesty,ktorou
+     * pozbieram všetky princezné
+     */
+
     for (int k = 0; k < oldLength*2; ++k) {
         finalPath[k] = dragonPath[k];
     }
     for (int i = oldLength * 2, j = 0; i < length * 2; ++i, j++) {
         finalPath[i] = best->path[j];
     }
-
-    //iba po draka
     *dlzka_cesty = length;
     return finalPath;
 }
-
 
 int main()
 {
