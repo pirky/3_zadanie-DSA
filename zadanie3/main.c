@@ -164,7 +164,9 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
     push(start, heapinfo);
     while(1){
         VERTEX *min = pop(heapinfo);
-
+        if(min == NULL){
+            return NULL;
+        }
         /*
          * ak sa vrchol, ktorý vráti funkcia pop z haldy rovná cieľu,
          * tak sa ukončí funkcia, pretože prehľadávenie došlo do cieľa
@@ -386,6 +388,23 @@ void permutation(int *array, int start, int end, MATRIXNODE **best, MATRIXNODE *
     }
 }
 
+/*
+ * funkcia freeMatrix uvoľní maticu
+ */
+
+void freeMatrix(MATRIXNODE ****matrix, MAPINFO *mapInfo){
+    for (int i = 0; i < mapInfo->princess + 1; ++i) {
+        for (int j = 0; j < mapInfo->princess + 1; ++j) {
+            free((*matrix)[i][j]);
+            (*matrix)[i][j] = NULL;
+        }
+        free((*matrix)[i]);
+        (*matrix)[i] = NULL;
+    }
+    free(*matrix);
+    *matrix = NULL;
+}
+
 int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
     MAPINFO *mapInfo = (MAPINFO*)malloc(sizeof(MAPINFO));
     mapInfo->m = m;
@@ -404,10 +423,20 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
     int price = pathPrice(mapInfo->vertexMap, dragon);
 
     /*
-     * ak nestihnem zabiť draka vrátim NULL
+     * ak nie je možné nájsť cestu k drakovi funkcia vráti NULL
+     */
+
+    if(dragon == NULL){
+        printf("Cesta neexistuje.\n");
+        return NULL;
+    }
+
+    /*
+     * ak drak nie je včas zabity funkcia vráti NULL
      */
 
     if(price > t){
+        printf("Nestihol si zabiť draka.\n");
         return NULL;
     }
     int length = pathLength(dragon);
@@ -445,6 +474,17 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
             VERTEX *start = mapInfo->vertexMap[mapInfo->characters[i][0]][mapInfo->characters[i][1]];
             VERTEX *finish = mapInfo->vertexMap[mapInfo->characters[j][0]][mapInfo->characters[j][1]];
             VERTEX *character = dijkstra(mapInfo,start,finish,heapinfo);
+
+            /*
+             * ak nie je možné nájsť cestu od draka k princeznej
+             * alebo od princeznej k princeznej funkcia vráti NULL
+             */
+
+            if(character == NULL){
+                printf("Cesta neexistuje.\n");
+                return NULL;
+            }
+
             int characterPrize = pathPrice(mapInfo->vertexMap, character);
             int characterLength = pathLength(character);
             int *characterPath = (int*)malloc(characterLength * 2 * sizeof(int));
@@ -481,6 +521,8 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
     for (int i = oldLength * 2, j = 0; i < length * 2; ++i, j++) {
         finalPath[i] = best->path[j];
     }
+    freeMatrix(&matrix,mapInfo);
+
     *dlzka_cesty = length;
     return finalPath;
 }
@@ -500,7 +542,7 @@ int main()
             case 0://ukonci program
                 return 0;
             case 1://nacitanie mapy zo suboru
-                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\test.txt","r");
+                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\testovanie.txt","r");
                 if(f)
                     fscanf(f, "%d %d %d", &n, &m, &t);
                 else
