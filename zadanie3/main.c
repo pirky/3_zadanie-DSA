@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /*
  * makro na zistenie menšieho dieťaťa v halde
@@ -130,10 +131,10 @@ VERTEX ***createMap(MAPINFO *mapInfo, char **mapa){
     return vertexMap;
 }
 
-void printMap(VERTEX ***vertexMap, int n, int m){
+void printMap(char **map, int n, int m){
     for(int i = 0; i < n; i++){
         for (int j = 0; j < m; ++j) {
-            printf("%c",vertexMap[i][j]->type);
+            printf("%c",map[i][j]);
         }
         printf("\n");
     }
@@ -388,9 +389,6 @@ void permutation(int *array, int start, int end, MATRIXNODE **best, MATRIXNODE *
     }
 }
 
-/*
- * funkcia freeMatrix uvoľní maticu
- */
 
 void freeMatrix(MATRIXNODE ****matrix, MAPINFO *mapInfo){
     for (int i = 0; i < mapInfo->princess + 1; ++i) {
@@ -403,6 +401,19 @@ void freeMatrix(MATRIXNODE ****matrix, MAPINFO *mapInfo){
     }
     free(*matrix);
     *matrix = NULL;
+}
+
+void freeVertexMap(MAPINFO *mapInfo){
+    for (int i = 0; i < mapInfo->n; ++i) {
+        for (int j = 0; j < mapInfo->m; ++j) {
+            free(mapInfo->vertexMap[i][j]);
+            mapInfo->vertexMap[i][j] = NULL;
+        }
+        free(mapInfo->vertexMap[i]);
+        mapInfo->vertexMap[i] = NULL;
+    }
+    free(mapInfo->vertexMap);
+    mapInfo->vertexMap = NULL;
 }
 
 int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
@@ -492,6 +503,7 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
             matrix[i][j]->price = characterPrize;
             matrix[i][j]->length = characterLength;
             matrix[i][j]->path = characterPath;
+            freeVertexMap(mapInfo);
         }
     }
 
@@ -521,20 +533,56 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
     for (int i = oldLength * 2, j = 0; i < length * 2; ++i, j++) {
         finalPath[i] = best->path[j];
     }
-    freeMatrix(&matrix,mapInfo);
 
+    /*
+     * uvoľnenie matice a mapy
+     */
+
+    freeMatrix(&matrix,mapInfo);
+    freeVertexMap(mapInfo);
+    free(mapInfo);
+    mapInfo = NULL;
     *dlzka_cesty = length;
     return finalPath;
 }
 
-int main()
-{
+char **randomMap(int n, int m){
+    char **map;
+    char array[3] = {'C','N','H'};
+    srand(time(0));
+    map = (char**) malloc (n * sizeof(char*));
+    for (int i = 0; i < n; ++i) {
+        map[i] = (char*) malloc(m * sizeof(char));
+        for (int j = 0; j < m; ++j) {
+            map[i][j] = array[rand() % 3];
+        }
+    }
+    while(map[0][0] == 'N'){
+        map[0][0] = array[rand() % 3];
+    }
+    map[rand() % n][rand() % m] = 'D';
+    int princess = (rand() % 5) + 1;
+    for (int k = 0; k < princess; ++k) {
+        int x = rand() % n;
+        int y = rand() % m;
+        while(map[x][y] == 'D'){
+            x = rand() % n;
+            y = rand() % m;
+        }
+        if(map[x][y] != 'D'){
+            map[x][y] = 'P';
+        }
+    }
+    return map;
+}
+
+int main(){
     char **mapa;
     int i, test, dlzka_cesty, cas, *cesta;
     int n=0, m=0, t=0;
     FILE* f;
     while(1){
-        printf("Zadajte cislo testu (0 ukonci program):\n");
+        printf("Zadajte cislo testu:\n 1 test zo suboru \n 2 test predefinovana mapa \n 3 test random vygenerovana mapa 10x10 \n 4 test random vygenerovana mapa 50x50 \n 5 test random vygenerovana mapa 100x100\n 0 ukonci program\n");
         scanf("%d",&test);
         dlzka_cesty = 0;
         n=m=t=0;
@@ -576,7 +624,33 @@ int main()
                 mapa[9]=strdup("HHHPCCCCCC");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
                 break;
-            case 3: //pridajte vlastne testovacie vzorky
+            case 3:
+                printf("Test na random n = 10, m = 10, t = 120\n");
+                n = 10;
+                m = 10;
+                t = 120;
+                mapa = randomMap(n,m);
+                printMap(mapa,n,m);
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 4:
+                printf("Test na random n = 50, m = 50, t = 1200\n");
+                n = 50;
+                m = 50;
+                t = 1200;
+                mapa = randomMap(n,m);
+                printMap(mapa,n,m);
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 5:
+                printf("Test na random n = 100, m = 100, t = 12000\n");
+                n = 100;
+                m = 100;
+                t = 12000;
+                mapa = randomMap(n,m);
+                printMap(mapa,n,m);
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
             default:
                 continue;
         }
