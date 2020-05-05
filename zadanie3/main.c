@@ -168,6 +168,7 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
         if(min == NULL){
             return NULL;
         }
+
         /*
          * ak sa vrchol, ktorý vráti funkcia pop z haldy rovná cieľu,
          * tak sa ukončí funkcia, pretože prehľadávenie došlo do cieľa
@@ -187,7 +188,7 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
          * respektíve ak ešte nebol daný vrchol zrelaxovaný
          */
 
-        if((y + 1 < mapInfo->m) && (mapInfo->vertexMap[x][y + 1] != min) && (mapInfo->vertexMap[x][y + 1]->ok == 0)){
+        if((y + 1 < mapInfo->m) && (mapInfo->vertexMap[x][y + 1] != min->before) && (mapInfo->vertexMap[x][y + 1]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x, y + 1);
             if((mapInfo->vertexMap[x][y + 1]->price > min->price + plus)){
@@ -202,7 +203,7 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
          * opísany vyššie
          */
 
-        if((x + 1 < mapInfo->n) && (mapInfo->vertexMap[x + 1][y] != min) && (mapInfo->vertexMap[x + 1][y]->ok == 0)){
+        if((x + 1 < mapInfo->n) && (mapInfo->vertexMap[x + 1][y] != min->before) && (mapInfo->vertexMap[x + 1][y]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x + 1, y);
             if((mapInfo->vertexMap[x + 1][y]->price > min->price + plus)){
@@ -217,7 +218,7 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
          * opísany vyššie
          */
 
-        if((y - 1 >= 0) && (mapInfo->vertexMap[x][y - 1] != min) && (mapInfo->vertexMap[x][y - 1]->ok == 0)){
+        if((y - 1 >= 0) && (mapInfo->vertexMap[x][y - 1] != min->before) && (mapInfo->vertexMap[x][y - 1]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x, y - 1);
             if((mapInfo->vertexMap[x][y - 1]->price > min->price + plus)){
@@ -232,7 +233,7 @@ VERTEX* dijkstra(MAPINFO *mapInfo, VERTEX* start, VERTEX* finish, HEAPINFO *heap
          * opísany vyššie
          */
 
-        if((x - 1 >= 0) && (mapInfo->vertexMap[x - 1][y] != min) && (mapInfo->vertexMap[x - 1][y]->ok == 0)){
+        if((x - 1 >= 0) && (mapInfo->vertexMap[x - 1][y] != min->before) && (mapInfo->vertexMap[x - 1][y]->ok == 0)){
             int plus = 0;
             plus = typeSize(mapInfo->vertexMap, x - 1, y);
             if((mapInfo->vertexMap[x - 1][y]->price > min->price + plus)){
@@ -446,7 +447,7 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
      */
 
     if(price > t){
-        printf("Nestihol si zabiť draka.\n");
+        printf("Nestihol si zabit draka.\n");
         return NULL;
     }
     int length = pathLength(dragon);
@@ -538,12 +539,15 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
      */
 
     freeMatrix(&matrix,mapInfo);
-    freeVertexMap(mapInfo);
     free(mapInfo);
     mapInfo = NULL;
     *dlzka_cesty = length;
     return finalPath;
 }
+
+/*
+ * funkcia randomMap vygeneruje náhodnú mapu o veľkosti aké dostane cez argumenty
+ */
 
 char **randomMap(int n, int m){
     char **map;
@@ -581,9 +585,10 @@ int main(){
     int n=0, m=0, t=0;
     FILE* f;
     while(1){
-        printf("Zadajte cislo testu:\n 1 test zo suboru \n 2 test predefinovana mapa \n 3 test random vygenerovana mapa 10x10 \n "
-               "4 test random vygenerovana mapa 50x50 \n 5 test random vygenerovana mapa 100x100\n 6 test zachranenie najprv najvzdialenejsej princeznej \n "
-               "7 test najprv zabije draka a potom pozbiera princezne \n 0 ukonci program\n");
+        printf("Zadajte cislo testu:\n 1 test zo suboru (mapa 100x100) \n 2 test predefinovana mapa \n 3 test zachranenie najvzdialenejsej princeznej \n "
+               "4 test najprv zabije draka a potom pozbiera princezne \n 5 test mala mapa 1 stlpec \n 6 test nestihnem zabit draka \n 7 test mala mapa 1 riadok \n "
+               "8 test neda sa zachranit princeznu \n 9 test random mapa 10x10 \n 10 test random mapa 50x50 \n 11 test random mapa 100x100 \n "
+               "0 ukonci program\n");
         scanf("%d",&test);
         dlzka_cesty = 0;
         n=m=t=0;
@@ -591,7 +596,7 @@ int main(){
             case 0://ukonči program
                 return 0;
             case 1://načítanie mapy zo súboru
-                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\testovanie.txt","r");
+                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\message.txt","r");
                 if(f)
                     fscanf(f, "%d %d %d", &n, &m, &t);
                 else
@@ -625,34 +630,7 @@ int main(){
                 mapa[9]=strdup("HHHPCCCCCC");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
                 break;
-            case 3: //vlastný test random mapa 10x10
-                printf("Test na random n = 10, m = 10, t = 120\n");
-                n = 10;
-                m = 10;
-                t = 120;
-                mapa = randomMap(n,m);
-                printMap(mapa,n,m);
-                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
-                break;
-            case 4: //vlastný test random mapa 50x50
-                printf("Test na random n = 50, m = 50, t = 1200\n");
-                n = 50;
-                m = 50;
-                t = 1200;
-                mapa = randomMap(n,m);
-                printMap(mapa,n,m);
-                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
-                break;
-            case 5: //vlastný test random mapa 100x100
-                printf("Test na random n = 100, m = 100, t = 12000\n");
-                n = 100;
-                m = 100;
-                t = 12000;
-                mapa = randomMap(n,m);
-                printMap(mapa,n,m);
-                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
-                break;
-            case 6://test zachránenie najvzdialenejšej princeznej
+            case 3://test zachránenie najvzdialenejšej princeznej
                 n = 10;
                 m = 10;
                 t = 120;
@@ -662,14 +640,14 @@ int main(){
                 mapa[2]=strdup("DNCCNNHHHC");
                 mapa[3]=strdup("CHHHCCCCCC");
                 mapa[4]=strdup("CCCCCNHHHH");
-                mapa[5]=strdup("PCHCCCNNNN");
+                mapa[5]=strdup("CCHCCCCNNN");
                 mapa[6]=strdup("NNNNNHCCCC");
-                mapa[7]=strdup("CCCCCPCCCC");
+                mapa[7]=strdup("PCCCNPCCCC");
                 mapa[8]=strdup("CCCNNHHHHH");
-                mapa[9]=strdup("HHHPCCCCCC");
+                mapa[9]=strdup("HHHHCCCCCC");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
                 break;
-            case 7://test najprv zabije draka a potom pozbiera princezné
+            case 4://test najprv zabije draka a potom pozbiera princezné
                 n = 10;
                 m = 10;
                 t = 120;
@@ -686,17 +664,106 @@ int main(){
                 mapa[9]=strdup("HHHCCCCCCD");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
                 break;
+            case 5://test 1 stlpec
+                n = 10;
+                m = 1;
+                t = 120;
+                mapa = (char**)malloc(n*sizeof(char*));
+                mapa[0]=strdup("C");
+                mapa[1]=strdup("C");
+                mapa[2]=strdup("H");
+                mapa[3]=strdup("P");
+                mapa[4]=strdup("C");
+                mapa[5]=strdup("C");
+                mapa[6]=strdup("C");
+                mapa[7]=strdup("P");
+                mapa[8]=strdup("C");
+                mapa[9]=strdup("D");
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 6://test nestihnem zabiť draka
+                n = 10;
+                m = 10;
+                t = 11;
+                mapa = (char**)malloc(n*sizeof(char*));
+                mapa[0]=strdup("CCHCNHCCHN");
+                mapa[1]=strdup("NNCCCHHCCC");
+                mapa[2]=strdup("DNCCNNHHHC");
+                mapa[3]=strdup("CHHHCCCCCC");
+                mapa[4]=strdup("CCCCCNHHHH");
+                mapa[5]=strdup("PCHCCCNNNN");
+                mapa[6]=strdup("NNNNNHCCCC");
+                mapa[7]=strdup("CCCCCPCCCC");
+                mapa[8]=strdup("CCCNNHHHHH");
+                mapa[9]=strdup("HHHPCCCCCC");
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 7://test mala mapa 1 riadok
+                n = 1;
+                m = 10;
+                t = 11;
+                mapa = (char**)malloc(n*sizeof(char*));
+                mapa[0]=strdup("CCPCCCCDPP");
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 8://test neda sa zachranit princeznu
+                n = 10;
+                m = 10;
+                t = 20;
+                mapa = (char**)malloc(n*sizeof(char*));
+                mapa[0]=strdup("CNHPHCHNHC");
+                mapa[1]=strdup("CNHNCCPNHH");
+                mapa[2]=strdup("CNCHNHHNCP");
+                mapa[3]=strdup("HNNHNHCHNP");
+                mapa[4]=strdup("HCPHNCHCCN");
+                mapa[5]=strdup("NNCNHNCNHC");
+                mapa[6]=strdup("HCHNCNHHHH");
+                mapa[7]=strdup("CCCNCCCNNC");
+                mapa[8]=strdup("NDHNCCNNCC");
+                mapa[9]=strdup("NHHNNCCCHN");
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 9: //test random mapa 10x10
+                printf("Test na random n = 10, m = 10, t = 120\n");
+                n = 10;
+                m = 10;
+                t = 120;
+                mapa = randomMap(n,m);
+                printMap(mapa,n,m);
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 10: //test random mapa 50x50
+                printf("Test na random n = 50, m = 50, t = 1200\n");
+                n = 50;
+                m = 50;
+                t = 1200;
+                mapa = randomMap(n,m);
+                printMap(mapa,n,m);
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 11: //test random mapa 100x100
+                printf("Test na random n = 100, m = 100, t = 12000\n");
+                n = 100;
+                m = 100;
+                t = 12000;
+                mapa = randomMap(n,m);
+                printMap(mapa,n,m);
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
             default:
                 continue;
         }
         cas = 0;
+        char deadDragon = 0;
         for(i=0; i<dlzka_cesty; i++){
             printf("%d %d\n", cesta[i*2], cesta[i*2+1]);
            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'H')
                 cas+=2;
             else
                 cas+=1;
-            if(mapa[cesta[i*2+1]][cesta[i*2]] == 'D' && cas > t)
+            if(!deadDragon && mapa[cesta[i*2+1]][cesta[i*2]] == 'D' && cas <= t)
+                deadDragon = 1;
+            if(!deadDragon && mapa[cesta[i*2+1]][cesta[i*2]] == 'D' && cas > t)
                 printf("Nestihol si zabit draka!\n");
             if(mapa[cesta[i*2+1]][cesta[i*2]] == 'N')
                 printf("Prechod cez nepriechodnu prekazku!\n");
