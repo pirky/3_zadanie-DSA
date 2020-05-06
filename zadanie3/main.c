@@ -476,7 +476,7 @@ int *zachran_princezne(char **mapa, int n, int m, int t, int *dlzka_cesty){
             mapInfo->vertexMap = createMap(mapInfo, mapa);
             heapinfo = (HEAPINFO*) malloc(sizeof(HEAPINFO));
             heapinfo->elements = 0;
-            if(i == j) {
+            if(i == j || j == 0) {
                 matrix[i][j]->price = 0;
                 matrix[i][j]->length = 0;
                 matrix[i][j]->path = NULL;
@@ -596,7 +596,7 @@ int main(){
             case 0://ukonči program
                 return 0;
             case 1://načítanie mapy zo súboru
-                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\Ran.txt","r");
+                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\Random100x100.txt","r");
                 if(f)
                     fscanf(f, "%d %d %d", &n, &m, &t);
                 else
