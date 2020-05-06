@@ -1,4 +1,5 @@
 /zadanie3/.idea/
 /zadanie3/cmake-build-debug/
-/zadanie3/*.txt
+/zadanie3/CMakeLists.txt
 *.pdf
+*.docs

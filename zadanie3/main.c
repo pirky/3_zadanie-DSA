@@ -586,7 +586,7 @@ int main(){
     FILE* f;
     while(1){
         printf("Zadajte cislo testu:\n 1 test zo suboru (mapa 100x100) \n 2 test predefinovana mapa \n 3 test zachranenie najvzdialenejsej princeznej \n "
-               "4 test najprv zabije draka a potom pozbiera princezne \n 5 test mala mapa 1 stlpec \n 6 test nestihnem zabit draka \n 7 test mala mapa 1 riadok \n "
+               "4 test najprv zabije draka a potom pozbiera princezne \n 5 test mala mapa 1 stlpec \n 6 test mala mapa 1 riadok  \n 7 test nestihnem zabit draka \n "
                "8 test neda sa zachranit princeznu \n 9 test random mapa 10x10 \n 10 test random mapa 50x50 \n 11 test random mapa 100x100 \n "
                "0 ukonci program\n");
         scanf("%d",&test);
@@ -596,7 +596,7 @@ int main(){
             case 0://ukonči program
                 return 0;
             case 1://načítanie mapy zo súboru
-                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\message.txt","r");
+                f=fopen("D:\\Internet toto nie je\\Skola\\2 semester\\DSA  Datove struktury a algoritmy\\Velke zadania\\3-Tretie\\zadanie3\\Ran.txt","r");
                 if(f)
                     fscanf(f, "%d %d %d", &n, &m, &t);
                 else
@@ -664,24 +664,29 @@ int main(){
                 mapa[9]=strdup("HHHCCCCCCD");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
                 break;
-            case 5://test 1 stlpec
-                n = 10;
+            case 5://test mala mapa 1 stlpec
+                n = 7;
                 m = 1;
                 t = 120;
                 mapa = (char**)malloc(n*sizeof(char*));
                 mapa[0]=strdup("C");
-                mapa[1]=strdup("C");
-                mapa[2]=strdup("H");
-                mapa[3]=strdup("P");
-                mapa[4]=strdup("C");
+                mapa[1]=strdup("H");
+                mapa[2]=strdup("P");
+                mapa[3]=strdup("C");
+                mapa[4]=strdup("P");
                 mapa[5]=strdup("C");
-                mapa[6]=strdup("C");
-                mapa[7]=strdup("P");
-                mapa[8]=strdup("C");
-                mapa[9]=strdup("D");
+                mapa[6]=strdup("D");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
                 break;
-            case 6://test nestihnem zabiť draka
+            case 6://test mala mapa 1 riadok
+                n = 1;
+                m = 8;
+                t = 11;
+                mapa = (char**)malloc(n*sizeof(char*));
+                mapa[0]=strdup("CPCHHCDP");
+                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
+                break;
+            case 7://test nestihnem zabiť draka
                 n = 10;
                 m = 10;
                 t = 11;
@@ -696,14 +701,6 @@ int main(){
                 mapa[7]=strdup("CCCCCPCCCC");
                 mapa[8]=strdup("CCCNNHHHHH");
                 mapa[9]=strdup("HHHPCCCCCC");
-                cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
-                break;
-            case 7://test mala mapa 1 riadok
-                n = 1;
-                m = 10;
-                t = 11;
-                mapa = (char**)malloc(n*sizeof(char*));
-                mapa[0]=strdup("CCPCCCCDPP");
                 cesta = zachran_princezne(mapa, n, m, t, &dlzka_cesty);
                 break;
             case 8://test neda sa zachranit princeznu
